@@ -1,0 +1,16 @@
+title,description,price,discountPrice,stock,categoryName,brand,images,colors,sizes,tags
+iPhone 15 Pro,Latest Apple smartphone with A17 chip and titanium design,1199.99,1099.99,50,Smartphones,Apple,https://example.com/iphone15.jpg,Black|White|Gold,128GB|256GB|512GB,smartphone|apple|flagship
+Samsung Galaxy S24 Ultra,Premium Android phone with S Pen and AI features,1299.99,1199.99,45,Smartphones,Samsung,https://example.com/s24ultra.jpg,Black|Violet|Yellow,256GB|512GB|1TB,smartphone|samsung|android
+MacBook Pro 16,Professional laptop with M3 Pro chip,2499.99,,30,Laptops,Apple,https://example.com/macbook16.jpg,Silver|Space Gray,512GB|1TB,laptop|apple|professional
+Dell XPS 15,Premium Windows laptop with OLED display,1899.99,1799.99,25,Laptops,Dell,https://example.com/xps15.jpg,Silver|Black,512GB|1TB,laptop|dell|windows
+Nike Air Max 90,Classic running shoes with Air cushioning,159.99,139.99,100,Sports & Outdoors,Nike,https://example.com/airmax90.jpg,White|Black|Red,7|8|9|10|11|12,shoes|nike|running
+Levi's 501 Original Jeans,Classic straight fit jeans,79.99,69.99,200,Men's Fashion,Levi's,https://example.com/levis501.jpg,Blue|Black,30|32|34|36,jeans|levis|classic
+Sony WH-1000XM5,Premium noise-cancelling wireless headphones,399.99,349.99,60,Electronics,Sony,https://example.com/sony-xm5.jpg,Black|Silver|Blue,,headphones|sony|wireless
+Dyson V15 Detect,Advanced cordless vacuum with laser detection,749.99,699.99,35,Home & Garden,Dyson,https://example.com/dyson-v15.jpg,Gold|Purple,,vacuum|dyson|cordless
+The Great Gatsby,Classic American novel by F. Scott Fitzgerald,14.99,12.99,500,Books & Media,Penguin Books,https://example.com/gatsby.jpg,,,book|fiction|classic
+PlayStation 5 Digital,Next-gen gaming console digital edition,449.99,,20,Electronics,Sony,https://example.com/ps5.jpg,White,,gaming|playstation|console
+LEGO Star Wars Millennium Falcon,Ultimate collector series building set,849.99,799.99,15,Toys & Games,LEGO,https://example.com/lego-falcon.jpg,,,lego|starwars|collector
+Adidas Ultraboost 22,Premium running shoes with Boost technology,189.99,169.99,80,Sports & Outdoors,Adidas,https://example.com/ultraboost.jpg,Black|White|Blue,7|8|9|10|11|12,shoes|adidas|running
+Canon EOS R5,Professional mirrorless camera,3899.99,3699.99,10,Electronics,Canon,https://example.com/eos-r5.jpg,Black,,camera|canon|professional
+La Mer Moisturizing Cream,Luxury face moisturizer,380.00,350.00,40,Beauty & Health,La Mer,https://example.com/lamer.jpg,,,skincare|luxury|moisturizer
+Michelin Pilot Sport 4S,High-performance summer tire,299.99,279.99,100,Automotive,Michelin,https://example.com/michelin-ps4s.jpg,,225/45R17|245/40R18|265/35R19,tire|michelin|performance

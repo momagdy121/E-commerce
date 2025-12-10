@@ -3,88 +3,203 @@ import Order from '../models/Order.js';
 import Stripe from 'stripe';
 import paypal from 'paypal-rest-sdk';
 import { sendNotification } from '../utils/notificationService.js';
+import { NotFoundError, BadRequestError } from '../errors/index.js';
+import { catchAsync, sendResponse } from '../utils/index.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Initialize Stripe (only if credentials are provided)
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+} else {
+  console.log('⚠️  Stripe credentials not found. Stripe payments will be disabled.');
+}
 
-// Configure PayPal
-paypal.configure({
-  mode: process.env.PAYPAL_MODE || 'sandbox',
-  client_id: process.env.PAYPAL_CLIENT_ID,
-  client_secret: process.env.PAYPAL_CLIENT_SECRET
-});
+// Configure PayPal (only if credentials are provided)
+if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET) {
+  paypal.configure({
+    mode: process.env.PAYPAL_MODE || 'sandbox',
+    client_id: process.env.PAYPAL_CLIENT_ID,
+    client_secret: process.env.PAYPAL_CLIENT_SECRET
+  });
+} else {
+  console.log('⚠️  PayPal credentials not found. PayPal payments will be disabled.');
+}
 
 // @desc    Create payment intent (Stripe)
 // @route   POST /api/payments/create-intent
 // @access  Private
-export const createPaymentIntent = async (req, res, next) => {
-  try {
-    const { orderId, amount } = req.body;
+export const createPaymentIntent = catchAsync(async (req, res, next) => {
+  const { orderId, amount } = req.body;
 
-    const order = await Order.findOne({
-      _id: orderId,
-      userId: req.user.id
-    });
+  const order = await Order.findOne({
+    _id: orderId,
+    userId: req.user.id
+  });
 
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found'
-      });
-    }
-
-    if (order.paymentStatus === 'paid') {
-      return res.status(400).json({
-        success: false,
-        message: 'Order is already paid'
-      });
-    }
-
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
-      currency: 'usd',
-      metadata: {
-        orderId: orderId.toString(),
-        userId: req.user.id.toString()
-      }
-    });
-
-    // Update payment record
-    const payment = await Payment.findOne({ orderId });
-    if (payment) {
-      payment.paymentIntentId = paymentIntent.id;
-      payment.status = 'processing';
-      await payment.save();
-    }
-
-    res.status(200).json({
-      success: true,
-      data: {
-        clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id
-      }
-    });
-  } catch (error) {
-    next(error);
+  if (!order) {
+    return next(new NotFoundError('Order not found'));
   }
-};
+
+  if (order.paymentStatus === 'paid') {
+    return next(new BadRequestError('Order is already paid'));
+  }
+
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: Math.round(amount * 100), // Convert to cents
+    currency: 'usd',
+    metadata: {
+      orderId: orderId.toString(),
+      userId: req.user.id.toString()
+    }
+  });
+
+  // Update payment record
+  const payment = await Payment.findOne({ orderId });
+  if (payment) {
+    payment.paymentIntentId = paymentIntent.id;
+    payment.status = 'processing';
+    await payment.save();
+  }
+
+  sendResponse(res, {
+    message: 'Payment intent created successfully',
+    data: {
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id
+    }
+  });
+});
 
 // @desc    Verify payment (Stripe)
 // @route   POST /api/payments/verify
 // @access  Private
-export const verifyPayment = async (req, res, next) => {
-  try {
-    const { paymentIntentId } = req.body;
+export const verifyPayment = catchAsync(async (req, res, next) => {
+  const { paymentIntentId } = req.body;
 
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
-    if (paymentIntent.status === 'succeeded') {
-      const payment = await Payment.findOne({ paymentIntentId });
-      if (payment) {
-        payment.status = 'completed';
-        payment.transactionId = paymentIntent.id;
-        await payment.save();
+  if (paymentIntent.status === 'succeeded') {
+    const payment = await Payment.findOne({ paymentIntentId });
+    if (payment) {
+      payment.status = 'completed';
+      payment.transactionId = paymentIntent.id;
+      await payment.save();
 
-        const order = await Order.findById(payment.orderId);
+      const order = await Order.findById(payment.orderId);
+      if (order) {
+        order.paymentStatus = 'paid';
+        await order.save();
+
+        // Send notification
+        await sendNotification({
+          userId: order.userId,
+          type: 'payment_successful',
+          title: 'Payment Successful',
+          message: `Your payment for order #${order._id} was successful`,
+          data: { orderId: order._id }
+        });
+      }
+    }
+
+    sendResponse(res, {
+      message: 'Payment verified successfully'
+    });
+  } else {
+    return next(new BadRequestError('Payment not completed'));
+  }
+});
+
+// @desc    Create PayPal payment
+// @route   POST /api/payments/paypal/create
+// @access  Private
+export const createPayPalPayment = catchAsync(async (req, res, next) => {
+  const { orderId, amount } = req.body;
+
+  const order = await Order.findOne({
+    _id: orderId,
+    userId: req.user.id
+  });
+
+  if (!order) {
+    return next(new NotFoundError('Order not found'));
+  }
+
+  const create_payment_json = {
+    intent: 'sale',
+    payer: {
+      payment_method: 'paypal'
+    },
+    redirect_urls: {
+      return_url: `${process.env.FRONTEND_URL}/payment/success`,
+      cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`
+    },
+    transactions: [{
+      item_list: {
+        items: order.items.map(item => ({
+          name: item.title,
+          sku: item.productId.toString(),
+          price: item.price.toFixed(2),
+          currency: 'USD',
+          quantity: item.quantity
+        }))
+      },
+      amount: {
+        currency: 'USD',
+        total: amount.toFixed(2)
+      },
+      description: `Order #${orderId}`
+    }]
+  };
+
+  paypal.payment.create(create_payment_json, async (error, payment) => {
+    if (error) {
+      return next(new BadRequestError(error.message));
+    }
+
+    // Update payment record
+    const paymentRecord = await Payment.findOne({ orderId });
+    if (paymentRecord) {
+      paymentRecord.paypalPaymentId = payment.id;
+      paymentRecord.status = 'processing';
+      await paymentRecord.save();
+    }
+
+    // Find approval URL
+    const approvalUrl = payment.links.find(link => link.rel === 'approval_url');
+
+    sendResponse(res, {
+      message: 'PayPal payment created successfully',
+      data: {
+        paymentId: payment.id,
+        approvalUrl: approvalUrl.href
+      }
+    });
+  });
+});
+
+// @desc    Execute PayPal payment
+// @route   POST /api/payments/paypal/execute
+// @access  Private
+export const executePayPalPayment = catchAsync(async (req, res, next) => {
+  const { paymentId, payerId } = req.body;
+
+  const execute_payment_json = {
+    payer_id: payerId
+  };
+
+  paypal.payment.execute(paymentId, execute_payment_json, async (error, payment) => {
+    if (error) {
+      return next(new BadRequestError(error.message));
+    }
+
+    if (payment.state === 'approved') {
+      const paymentRecord = await Payment.findOne({ paypalPaymentId: paymentId });
+      if (paymentRecord) {
+        paymentRecord.status = 'completed';
+        paymentRecord.transactionId = payment.id;
+        await paymentRecord.save();
+
+        const order = await Order.findById(paymentRecord.orderId);
         if (order) {
           order.paymentStatus = 'paid';
           await order.save();
@@ -100,162 +215,20 @@ export const verifyPayment = async (req, res, next) => {
         }
       }
 
-      res.status(200).json({
-        success: true,
-        message: 'Payment verified successfully'
+      sendResponse(res, {
+        message: 'Payment executed successfully',
+        data: payment
       });
     } else {
-      res.status(400).json({
-        success: false,
-        message: 'Payment not completed'
-      });
+      return next(new BadRequestError('Payment not approved'));
     }
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Create PayPal payment
-// @route   POST /api/payments/paypal/create
-// @access  Private
-export const createPayPalPayment = async (req, res, next) => {
-  try {
-    const { orderId, amount } = req.body;
-
-    const order = await Order.findOne({
-      _id: orderId,
-      userId: req.user.id
-    });
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found'
-      });
-    }
-
-    const create_payment_json = {
-      intent: 'sale',
-      payer: {
-        payment_method: 'paypal'
-      },
-      redirect_urls: {
-        return_url: `${process.env.FRONTEND_URL}/payment/success`,
-        cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`
-      },
-      transactions: [{
-        item_list: {
-          items: order.items.map(item => ({
-            name: item.title,
-            sku: item.productId.toString(),
-            price: item.price.toFixed(2),
-            currency: 'USD',
-            quantity: item.quantity
-          }))
-        },
-        amount: {
-          currency: 'USD',
-          total: amount.toFixed(2)
-        },
-        description: `Order #${orderId}`
-      }]
-    };
-
-    paypal.payment.create(create_payment_json, async (error, payment) => {
-      if (error) {
-        return res.status(400).json({
-          success: false,
-          message: error.message
-        });
-      }
-
-      // Update payment record
-      const paymentRecord = await Payment.findOne({ orderId });
-      if (paymentRecord) {
-        paymentRecord.paypalPaymentId = payment.id;
-        paymentRecord.status = 'processing';
-        await paymentRecord.save();
-      }
-
-      // Find approval URL
-      const approvalUrl = payment.links.find(link => link.rel === 'approval_url');
-
-      res.status(200).json({
-        success: true,
-        data: {
-          paymentId: payment.id,
-          approvalUrl: approvalUrl.href
-        }
-      });
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Execute PayPal payment
-// @route   POST /api/payments/paypal/execute
-// @access  Private
-export const executePayPalPayment = async (req, res, next) => {
-  try {
-    const { paymentId, payerId } = req.body;
-
-    const execute_payment_json = {
-      payer_id: payerId
-    };
-
-    paypal.payment.execute(paymentId, execute_payment_json, async (error, payment) => {
-      if (error) {
-        return res.status(400).json({
-          success: false,
-          message: error.message
-        });
-      }
-
-      if (payment.state === 'approved') {
-        const paymentRecord = await Payment.findOne({ paypalPaymentId: paymentId });
-        if (paymentRecord) {
-          paymentRecord.status = 'completed';
-          paymentRecord.transactionId = payment.id;
-          await paymentRecord.save();
-
-          const order = await Order.findById(paymentRecord.orderId);
-          if (order) {
-            order.paymentStatus = 'paid';
-            await order.save();
-
-            // Send notification
-            await sendNotification({
-              userId: order.userId,
-              type: 'payment_successful',
-              title: 'Payment Successful',
-              message: `Your payment for order #${order._id} was successful`,
-              data: { orderId: order._id }
-            });
-          }
-        }
-
-        res.status(200).json({
-          success: true,
-          message: 'Payment executed successfully',
-          data: payment
-        });
-      } else {
-        res.status(400).json({
-          success: false,
-          message: 'Payment not approved'
-        });
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  });
+});
 
 // @desc    Handle Stripe webhook
 // @route   POST /api/payments/webhook/stripe
 // @access  Public
-export const handleStripeWebhook = async (req, res, next) => {
+export const handleStripeWebhook = catchAsync(async (req, res, next) => {
   const sig = req.headers['stripe-signature'];
   let event;
 
@@ -308,73 +281,54 @@ export const handleStripeWebhook = async (req, res, next) => {
   }
 
   res.json({ received: true });
-};
+});
 
 // @desc    Get payment details
 // @route   GET /api/payments/:paymentId
 // @access  Private
-export const getPayment = async (req, res, next) => {
-  try {
-    const payment = await Payment.findOne({
-      _id: req.params.paymentId,
-      userId: req.user.id
-    }).populate('orderId');
+export const getPayment = catchAsync(async (req, res, next) => {
+  const payment = await Payment.findOne({
+    _id: req.params.paymentId,
+    userId: req.user.id
+  }).populate('orderId');
 
-    if (!payment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Payment not found'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: payment
-    });
-  } catch (error) {
-    next(error);
+  if (!payment) {
+    return next(new NotFoundError('Payment not found'));
   }
-};
+
+  sendResponse(res, {
+    message: 'Payment retrieved successfully',
+    data: payment
+  });
+});
 
 // @desc    Process COD payment
 // @route   POST /api/payments/cod
 // @access  Private
-export const processCOD = async (req, res, next) => {
-  try {
-    const { orderId } = req.body;
+export const processCOD = catchAsync(async (req, res, next) => {
+  const { orderId } = req.body;
 
-    const order = await Order.findOne({
-      _id: orderId,
-      userId: req.user.id
-    });
+  const order = await Order.findOne({
+    _id: orderId,
+    userId: req.user.id
+  });
 
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found'
-      });
-    }
-
-    if (order.paymentMethod !== 'COD') {
-      return res.status(400).json({
-        success: false,
-        message: 'Order is not COD'
-      });
-    }
-
-    // For COD, payment is pending until delivery
-    const payment = await Payment.findOne({ orderId });
-    if (payment) {
-      payment.status = 'pending';
-      await payment.save();
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'COD order confirmed. Payment will be collected on delivery.'
-    });
-  } catch (error) {
-    next(error);
+  if (!order) {
+    return next(new NotFoundError('Order not found'));
   }
-};
 
+  if (order.paymentMethod !== 'COD') {
+    return next(new BadRequestError('Order is not COD'));
+  }
+
+  // For COD, payment is pending until delivery
+  const payment = await Payment.findOne({ orderId });
+  if (payment) {
+    payment.status = 'pending';
+    await payment.save();
+  }
+
+  sendResponse(res, {
+    message: 'COD order confirmed. Payment will be collected on delivery.'
+  });
+});

@@ -1,191 +1,8 @@
 import Review from '../models/Review.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
-
-// @desc    Get reviews for a product
-// @route   GET /api/reviews/product/:productId
-// @access  Public
-export const getProductReviews = async (req, res, next) => {
-  try {
-    const {
-      page = 1,
-      limit = 10,
-      sort = '-createdAt'
-    } = req.query;
-
-    const reviews = await Review.find({ productId: req.params.productId })
-      .populate('userId', 'fullName')
-      .sort(sort)
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-
-    const total = await Review.countDocuments({ productId: req.params.productId });
-
-    res.status(200).json({
-      success: true,
-      count: reviews.length,
-      total,
-      page: Number(page),
-      pages: Math.ceil(total / limit),
-      data: reviews
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Add review
-// @route   POST /api/reviews
-// @access  Private
-export const addReview = async (req, res, next) => {
-  try {
-    const { productId, rating, comment } = req.body;
-
-    // Verify product exists
-    const product = await Product.findById(productId);
-    if (!product || !product.isActive) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found'
-      });
-    }
-
-    // Check if user already reviewed this product
-    const existingReview = await Review.findOne({
-      userId: req.user.id,
-      productId
-    });
-
-    if (existingReview) {
-      return res.status(400).json({
-        success: false,
-        message: 'You have already reviewed this product'
-      });
-    }
-
-    // Check if user has purchased this product (optional verification)
-    const hasPurchased = await Order.findOne({
-      userId: req.user.id,
-      'items.productId': productId,
-      orderStatus: { $in: ['delivered', 'shipped'] }
-    });
-
-    const review = await Review.create({
-      userId: req.user.id,
-      productId,
-      rating,
-      comment,
-      isVerifiedPurchase: !!hasPurchased
-    });
-
-    // Update product rating
-    await updateProductRating(productId);
-
-    res.status(201).json({
-      success: true,
-      data: review
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Update review
-// @route   PUT /api/reviews/:id
-// @access  Private
-export const updateReview = async (req, res, next) => {
-  try {
-    const { rating, comment } = req.body;
-
-    let review = await Review.findById(req.params.id);
-
-    if (!review) {
-      return res.status(404).json({
-        success: false,
-        message: 'Review not found'
-      });
-    }
-
-    // Check if user owns the review
-    if (review.userId.toString() !== req.user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to update this review'
-      });
-    }
-
-    if (rating) review.rating = rating;
-    if (comment !== undefined) review.comment = comment;
-
-    await review.save();
-
-    // Update product rating
-    await updateProductRating(review.productId);
-
-    res.status(200).json({
-      success: true,
-      data: review
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Delete review
-// @route   DELETE /api/reviews/:id
-// @access  Private
-export const deleteReview = async (req, res, next) => {
-  try {
-    const review = await Review.findById(req.params.id);
-
-    if (!review) {
-      return res.status(404).json({
-        success: false,
-        message: 'Review not found'
-      });
-    }
-
-    // Check if user owns the review or is admin
-    if (review.userId.toString() !== req.user.id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to delete this review'
-      });
-    }
-
-    const productId = review.productId;
-    await review.remove();
-
-    // Update product rating
-    await updateProductRating(productId);
-
-    res.status(200).json({
-      success: true,
-      message: 'Review deleted successfully'
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Get user reviews
-// @route   GET /api/reviews/user
-// @access  Private
-export const getUserReviews = async (req, res, next) => {
-  try {
-    const reviews = await Review.find({ userId: req.user.id })
-      .populate('productId', 'title images')
-      .sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: reviews.length,
-      data: reviews
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+import { NotFoundError, BadRequestError, ForbiddenError } from '../errors/index.js';
+import { catchAsync, sendResponse, ApiFeatures } from '../utils/index.js';
 
 // Helper function to update product rating
 const updateProductRating = async (productId) => {
@@ -208,3 +25,160 @@ const updateProductRating = async (productId) => {
   });
 };
 
+// @desc    Get reviews for a product
+// @route   GET /api/reviews/product/:productId
+// @access  Public
+export const getProductReviews = catchAsync(async (req, res, next) => {
+  const baseQuery = Review.find({ productId: req.params.productId });
+
+  const features = new ApiFeatures(baseQuery, req.query)
+    .sort()
+    .paginate()
+    .populate('userId', 'fullName');
+
+  const reviews = await features.query;
+  const total = await Review.countDocuments({ productId: req.params.productId });
+  
+  const pagination = ApiFeatures.getPaginationMeta(
+    total,
+    features.pagination.page,
+    features.pagination.limit
+  );
+
+  sendResponse(res, {
+    message: 'Product reviews retrieved successfully',
+    data: reviews,
+    meta: pagination
+  });
+});
+
+// @desc    Add review
+// @route   POST /api/reviews
+// @access  Private
+export const addReview = catchAsync(async (req, res, next) => {
+  const { productId, rating, comment } = req.body;
+
+  // Verify product exists
+  const product = await Product.findById(productId);
+  if (!product || !product.isActive) {
+    return next(new NotFoundError('Product not found'));
+  }
+
+  // Check if user already reviewed this product
+  const existingReview = await Review.findOne({
+    userId: req.user.id,
+    productId
+  });
+
+  if (existingReview) {
+    return next(new BadRequestError('You have already reviewed this product'));
+  }
+
+  // Check if user has purchased this product (optional verification)
+  const hasPurchased = await Order.findOne({
+    userId: req.user.id,
+    'items.productId': productId,
+    orderStatus: { $in: ['delivered', 'shipped'] }
+  });
+
+  const review = await Review.create({
+    userId: req.user.id,
+    productId,
+    rating,
+    comment,
+    isVerifiedPurchase: !!hasPurchased
+  });
+
+  // Update product rating
+  await updateProductRating(productId);
+
+  sendResponse(res, {
+    code: 201,
+    message: 'Review added successfully',
+    data: review
+  });
+});
+
+// @desc    Update review
+// @route   PUT /api/reviews/:id
+// @access  Private
+export const updateReview = catchAsync(async (req, res, next) => {
+  const { rating, comment } = req.body;
+
+  let review = await Review.findById(req.params.id);
+
+  if (!review) {
+    return next(new NotFoundError('Review not found'));
+  }
+
+  // Check if user owns the review
+  if (review.userId.toString() !== req.user.id.toString()) {
+    return next(new ForbiddenError('Not authorized to update this review'));
+  }
+
+  if (rating) review.rating = rating;
+  if (comment !== undefined) review.comment = comment;
+
+  await review.save();
+
+  // Update product rating
+  await updateProductRating(review.productId);
+
+  sendResponse(res, {
+    message: 'Review updated successfully',
+    data: review
+  });
+});
+
+// @desc    Delete review
+// @route   DELETE /api/reviews/:id
+// @access  Private
+export const deleteReview = catchAsync(async (req, res, next) => {
+  const review = await Review.findById(req.params.id);
+
+  if (!review) {
+    return next(new NotFoundError('Review not found'));
+  }
+
+  // Check if user owns the review or is admin
+  if (review.userId.toString() !== req.user.id.toString() && req.user.role !== 'admin') {
+    return next(new ForbiddenError('Not authorized to delete this review'));
+  }
+
+  const productId = review.productId;
+  await review.remove();
+
+  // Update product rating
+  await updateProductRating(productId);
+
+  sendResponse(res, {
+    message: 'Review deleted successfully'
+  });
+});
+
+// @desc    Get user reviews
+// @route   GET /api/reviews/user
+// @access  Private
+export const getUserReviews = catchAsync(async (req, res, next) => {
+  const baseQuery = Review.find({ userId: req.user.id });
+
+  const features = new ApiFeatures(baseQuery, req.query)
+    .sort()
+    .paginate()
+    .populate('productId', 'title images');
+
+  const reviews = await features.query;
+  const total = await Review.countDocuments({ userId: req.user.id });
+  
+  const pagination = ApiFeatures.getPaginationMeta(
+    total,
+    features.pagination.page,
+    features.pagination.limit
+  );
+
+  sendResponse(res, {
+    message: 'User reviews retrieved successfully',
+    data: reviews,
+    meta: pagination
+  });
+});

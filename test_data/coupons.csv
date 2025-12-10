@@ -1,0 +1,11 @@
+code,discountType,discountValue,minPurchaseAmount,maxDiscountAmount,validFrom,validUntil,usageLimit,isActive
+WELCOME10,percentage,10,50,100,2024-01-01,2025-12-31,1000,true
+SAVE20,percentage,20,100,200,2024-01-01,2025-12-31,500,true
+FLAT50,fixed,50,200,,2024-01-01,2025-06-30,200,true
+SUMMER25,percentage,25,150,300,2024-06-01,2024-08-31,300,true
+HOLIDAY30,percentage,30,200,500,2024-12-01,2024-12-31,400,true
+NEWYEAR15,percentage,15,75,150,2025-01-01,2025-01-31,250,true
+FLASH40,percentage,40,300,400,2024-03-01,2024-03-07,100,true
+LOYALTY20,percentage,20,0,,2024-01-01,2025-12-31,5000,true
+FREESHIP,fixed,15,50,15,2024-01-01,2025-12-31,,true
+VIP50,percentage,50,500,750,2024-01-01,2025-12-31,50,true

@@ -1,0 +1,15 @@
+userEmail,type,title,message,isRead
+john.smith@example.com,order_placed,Order Confirmed,Your order #ORD-001 has been confirmed and is being processed.,true
+john.smith@example.com,order_shipped,Order Shipped,Your order #ORD-001 has been shipped! Tracking: TRK123456789,true
+john.smith@example.com,order_delivered,Order Delivered,Your order #ORD-001 has been delivered. Enjoy your purchase!,false
+jane.doe@example.com,order_placed,Order Confirmed,Your order #ORD-002 has been confirmed.,true
+jane.doe@example.com,order_shipped,Order Shipped,Your order #ORD-002 is on its way! Tracking: TRK234567890,false
+bob.wilson@example.com,payment_successful,Payment Received,We received your payment of $2499.99 for order #ORD-003.,true
+alice.j@example.com,order_delivered,Order Delivered,Your Nike Air Max 90 has been delivered!,true
+mike.brown@example.com,order_status_updated,Order Update,Your order #ORD-005 status changed to: Processing,false
+sarah.d@example.com,general,Welcome!,Welcome to our store! Use code WELCOME10 for 10% off your first order.,true
+tom.garcia@example.com,payment_successful,Payment Confirmed,Your payment of $449.99 was successful.,true
+emily.w@example.com,order_placed,Order Confirmed,Your order for The Great Gatsby (x3) has been confirmed.,true
+david.lee@example.com,order_shipped,Order Shipped,Your LEGO set is on its way! Tracking: TRK678901234,false
+john.smith@example.com,general,Flash Sale!,Don't miss our flash sale - 40% off electronics this weekend!,false
+jane.doe@example.com,password_reset,Password Changed,Your password was successfully changed.,true

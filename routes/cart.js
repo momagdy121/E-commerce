@@ -8,9 +8,10 @@ import {
   clearCart,
   mergeCart
 } from '../controllers/cartController.js';
-import { protect } from '../middleware/auth.js';
+import { protect, verified } from '../middleware/auth.js';
 
 router.use(protect);
+router.use(verified);
 
 router.get('/', getCart);
 router.post('/items', addToCart);

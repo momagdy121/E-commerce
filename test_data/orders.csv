@@ -1,0 +1,11 @@
+userEmail,productTitle,quantity,totalPrice,discount,couponCode,paymentStatus,orderStatus,paymentMethod,street,city,state,zipCode,country,trackingNumber,notes
+john.smith@example.com,iPhone 15 Pro,1,1099.99,100,WELCOME10,paid,delivered,stripe,123 Main St,New York,NY,10001,US,TRK123456789,Handle with care
+jane.doe@example.com,Samsung Galaxy S24 Ultra,1,1199.99,0,,paid,shipped,card,456 Oak Ave,Los Angeles,CA,90001,US,TRK234567890,
+bob.wilson@example.com,MacBook Pro 16,1,2499.99,0,,paid,processing,PayPal,321 Pine St,Houston,TX,77001,US,,Gift wrapping please
+alice.j@example.com,Nike Air Max 90,2,279.98,40,SAVE20,paid,delivered,stripe,654 Elm Dr,Phoenix,AZ,85001,US,TRK345678901,
+mike.brown@example.com,Sony WH-1000XM5,1,349.99,50,FLAT50,paid,delivered,card,987 Cedar Ln,Philadelphia,PA,19101,US,TRK456789012,
+sarah.d@example.com,Dyson V15 Detect,1,699.99,0,,pending,pending,COD,147 Maple Ave,San Antonio,TX,78201,US,,
+tom.garcia@example.com,PlayStation 5 Digital,1,449.99,0,,paid,confirmed,stripe,258 Birch Rd,San Diego,CA,92101,US,,
+emily.w@example.com,The Great Gatsby,3,38.97,0,,paid,delivered,card,369 Spruce St,Dallas,TX,75201,US,TRK567890123,
+david.lee@example.com,LEGO Star Wars Millennium Falcon,1,799.99,50,FLAT50,paid,shipped,PayPal,741 Walnut Ct,San Jose,CA,95101,US,TRK678901234,Signature required
+john.smith@example.com,Canon EOS R5,1,3699.99,200,HOLIDAY30,paid,processing,stripe,123 Main St,New York,NY,10001,US,,Insurance required

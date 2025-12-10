@@ -11,20 +11,20 @@ export const protect = async (req, res, next) => {
   }
 
   if (!token) {
-    return next(new UnauthorizedError('Not authorized to access this route'));
+    return next(new UnauthorizedError('Please log in to access this resource'));
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.id).select('-passwordHash');
-    
+
     if (!req.user) {
-      return next(new UnauthorizedError('User not found'));
+      return next(new UnauthorizedError('User belonging to this token no longer exists'));
     }
 
     next();
   } catch (error) {
-    return next(new UnauthorizedError('Not authorized to access this route'));
+    return next(new UnauthorizedError('Session invalid or expired, please log in again'));
   }
 };
 
@@ -32,8 +32,16 @@ export const protect = async (req, res, next) => {
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      return next(new ForbiddenError(`User role '${req.user.role}' is not authorized to access this route`));
+      return next(new ForbiddenError(`Access denied. Role '${req.user.role}' required.`));
     }
     next();
   };
+};
+
+// Check if user is verified
+export const verified = (req, res, next) => {
+  if (!req.user.isEmailVerified && !req.user.isPhoneVerified) {
+    return next(new ForbiddenError('Account not verified. Please verify your email or phone number to access this feature.'));
+  }
+  next();
 };

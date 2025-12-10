@@ -16,7 +16,15 @@ export const validateRegister = [
     .withMessage('Full name is required')
     .isLength({ min: 2 })
     .withMessage('Full name must be at least 2 characters'),
+  body()
+    .custom((value, { req }) => {
+      if (!req.body.email && !req.body.phone) {
+        throw new Error('Please provide either email or phone number');
+      }
+      return true;
+    }),
   body('email')
+    .optional()
     .isEmail()
     .withMessage('Please provide a valid email')
     .normalizeEmail(),
@@ -31,7 +39,15 @@ export const validateRegister = [
 ];
 
 export const validateLogin = [
+  body()
+    .custom((value, { req }) => {
+      if (!req.body.email && !req.body.phone) {
+        throw new Error('Please provide email or phone number');
+      }
+      return true;
+    }),
   body('email')
+    .optional()
     .isEmail()
     .withMessage('Please provide a valid email')
     .normalizeEmail(),

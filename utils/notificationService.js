@@ -1,24 +1,8 @@
 import Notification from '../models/Notification.js';
 import { sendEmail } from './emailService.js';
-import admin from 'firebase-admin';
 import twilio from 'twilio';
 
-// Initialize Firebase Admin (if configured)
-let firebaseInitialized = false;
-if (process.env.FIREBASE_PROJECT_ID) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL
-      })
-    });
-    firebaseInitialized = true;
-  } catch (error) {
-    console.error('Firebase initialization failed:', error);
-  }
-}
+// Firebase push notifications are disabled (not implemented yet)
 
 // Initialize Twilio (if configured)
 let twilioClient = null;
@@ -60,42 +44,33 @@ export const sendNotification = async (options) => {
   }
 
   // Send SMS notification
-  if (sendSMS && twilioClient) {
-    try {
-      const User = (await import('../models/User.js')).default;
-      const user = await User.findById(userId);
-      if (user && user.phone) {
-        await twilioClient.messages.create({
-          body: `${title}: ${message}`,
-          from: process.env.TWILIO_PHONE_NUMBER,
-          to: user.phone
-        });
+  if (sendSMS) {
+    if (twilioClient) {
+      try {
+        const User = (await import('../models/User.js')).default;
+        const user = await User.findById(userId);
+        if (user && user.phone) {
+          await twilioClient.messages.create({
+            body: `${title}: ${message}`,
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: user.phone
+          });
+        }
+      } catch (error) {
+        console.error('SMS notification failed:', error);
       }
-    } catch (error) {
-      console.error('SMS notification failed:', error);
+    } else {
+      console.warn('Twilio not configured. SMS not sent.');
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[SMS MOCK] To: ${userId} | Message: ${title}: ${message}`);
+      }
     }
   }
 
-  // Send push notification
-  if (sendPush && firebaseInitialized) {
-    try {
-      // This would require storing FCM tokens in user model
-      // For now, this is a placeholder
-      // const user = await User.findById(userId);
-      // if (user && user.fcmToken) {
-      //   await admin.messaging().send({
-      //     token: user.fcmToken,
-      //     notification: {
-      //       title,
-      //       body: message
-      //     },
-      //     data: data || {}
-      //   });
-      // }
-    } catch (error) {
-      console.error('Push notification failed:', error);
-    }
-  }
+  // Push notification (Firebase) - not implemented yet
+  // if (sendPush) {
+  //   // TODO: Implement push notifications with Firebase
+  // }
 
   return notification;
 };

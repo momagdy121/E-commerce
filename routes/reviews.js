@@ -7,13 +7,13 @@ import {
   deleteReview,
   getUserReviews
 } from '../controllers/reviewController.js';
-import { protect } from '../middleware/auth.js';
+import { protect, verified } from '../middleware/auth.js';
 
 router.get('/product/:productId', getProductReviews);
-router.get('/user', protect, getUserReviews);
-router.post('/', protect, addReview);
-router.put('/:id', protect, updateReview);
-router.delete('/:id', protect, deleteReview);
+router.get('/user', protect, verified, getUserReviews);
+router.post('/', protect, verified, addReview);
+router.put('/:id', protect, verified, updateReview);
+router.delete('/:id', protect, verified, deleteReview);
 
 export default router;
 

@@ -1,0 +1,11 @@
+userEmail,orderIndex,amount,method,transactionId,status
+john.smith@example.com,0,1099.99,stripe,TXN_STR_001,completed
+jane.doe@example.com,1,1199.99,card,TXN_CARD_002,completed
+bob.wilson@example.com,2,2499.99,PayPal,TXN_PP_003,completed
+alice.j@example.com,3,279.98,stripe,TXN_STR_004,completed
+mike.brown@example.com,4,349.99,card,TXN_CARD_005,completed
+sarah.d@example.com,5,699.99,COD,,pending
+tom.garcia@example.com,6,449.99,stripe,TXN_STR_007,completed
+emily.w@example.com,7,38.97,card,TXN_CARD_008,completed
+david.lee@example.com,8,799.99,PayPal,TXN_PP_009,completed
+john.smith@example.com,9,3699.99,stripe,TXN_STR_010,completed

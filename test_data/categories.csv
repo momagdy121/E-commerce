@@ -1,0 +1,13 @@
+name,slug,description,isActive
+Electronics,electronics,All electronic devices and gadgets,true
+Clothing,clothing,Fashion and apparel for all ages,true
+Home & Garden,home-garden,Home improvement and garden supplies,true
+Sports & Outdoors,sports-outdoors,Sports equipment and outdoor gear,true
+Books & Media,books-media,Books and digital media,true
+Beauty & Health,beauty-health,Beauty products and health items,true
+Toys & Games,toys-games,Toys and games for children,true
+Automotive,automotive,Car parts and accessories,true
+Smartphones,smartphones,Mobile phones and accessories,true
+Laptops,laptops,Laptop computers and accessories,true
+Men's Fashion,mens-fashion,Men's clothing and accessories,true
+Women's Fashion,womens-fashion,Women's clothing and accessories,true

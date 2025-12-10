@@ -4,6 +4,8 @@ package-lock.json
 
 # Environment variables
 .env
+client_secret_*.json
+todo.txt
 
 # Logs
 logs/

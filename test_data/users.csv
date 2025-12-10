@@ -1,0 +1,11 @@
+fullName,email,password,phone,role,street,city,state,zipCode,country,isEmailVerified
+John Smith,john.smith@example.com,Password123!,+1234567890,user,123 Main St,New York,NY,10001,US,true
+Jane Doe,jane.doe@example.com,SecurePass456!,+1234567891,user,456 Oak Ave,Los Angeles,CA,90001,US,true
+Admin User,admin@ecommerce.com,AdminPass789!,+1234567892,admin,789 Admin Blvd,Chicago,IL,60601,US,true
+Bob Wilson,bob.wilson@example.com,BobPass123!,+1234567893,user,321 Pine St,Houston,TX,77001,US,false
+Alice Johnson,alice.j@example.com,AliceSecure!1,+1234567894,vendor,654 Elm Dr,Phoenix,AZ,85001,US,true
+Mike Brown,mike.brown@example.com,MikePass456!,+1234567895,user,987 Cedar Ln,Philadelphia,PA,19101,US,true
+Sarah Davis,sarah.d@example.com,SarahSecure!2,+1234567896,user,147 Maple Ave,San Antonio,TX,78201,US,false
+Tom Garcia,tom.garcia@example.com,TomPass789!,+1234567897,vendor,258 Birch Rd,San Diego,CA,92101,US,true
+Emily White,emily.w@example.com,EmilyPass!12,+1234567898,user,369 Spruce St,Dallas,TX,75201,US,true
+David Lee,david.lee@example.com,DavidSecure!3,+1234567899,user,741 Walnut Ct,San Jose,CA,95101,US,true

@@ -16,6 +16,7 @@ const notificationSchema = new mongoose.Schema({
       'payment_successful',
       'payment_failed',
       'password_reset',
+      'verification',
       'general'
     ],
     required: true

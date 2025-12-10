@@ -8,9 +8,10 @@ import {
   updateOrderStatus,
   getAllOrders
 } from '../controllers/orderController.js';
-import { protect, authorize } from '../middleware/auth.js';
+import { protect, authorize, verified } from '../middleware/auth.js';
 
 router.use(protect);
+router.use(verified);
 
 router.post('/', createOrder);
 router.get('/', getOrders);
