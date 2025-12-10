@@ -422,7 +422,10 @@ export const refreshToken = catchAsync(async (req, res, next) => {
 // @access  Private
 export const logout = catchAsync(async (req, res, next) => {
   const user = await User.findById(req.user.id);
+
   user.refreshToken = null;
+  user.lastLogoutAt = Date.now();
+
   await user.save();
 
   sendResponse(res, {

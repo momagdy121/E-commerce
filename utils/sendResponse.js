@@ -19,8 +19,7 @@ const sendResponse = (
   } = {}
 ) => {
   const response = {
-    success: status === 'success',
-    status
+    success: status === 'success'
   };
 
   if (message) {

@@ -65,6 +65,9 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true
   },
+  lastLogoutAt: {
+    type: Date
+  },
   role: {
     type: String,
     enum: ['user', 'admin', 'vendor'],

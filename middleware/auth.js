@@ -22,6 +22,15 @@ export const protect = async (req, res, next) => {
       return next(new UnauthorizedError('User belonging to this token no longer exists'));
     }
 
+    // Check if user changed password or logged out after the token was issued
+    if (req.user.lastLogoutAt) {
+      const lastLogoutTime = parseInt(req.user.lastLogoutAt.getTime() / 1000, 10);
+
+      if (decoded.iat < lastLogoutTime) {
+        return next(new UnauthorizedError('Session expired. Please log in again.'));
+      }
+    }
+
     next();
   } catch (error) {
     return next(new UnauthorizedError('Session invalid or expired, please log in again'));
