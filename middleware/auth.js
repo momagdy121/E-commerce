@@ -41,7 +41,7 @@ export const protect = async (req, res, next) => {
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      return next(new ForbiddenError(`Access denied. Role '${req.user.role}' required.`));
+      return next(new ForbiddenError(`Access denied. Role '${roles.join(' or ')}' required.`));
     }
     next();
   };
