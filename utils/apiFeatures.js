@@ -24,22 +24,31 @@ export class ApiFeatures {
   /**
    * Filter query
    */
-  filter() {
+  filter(additionalOrConditions = []) {
     const queryObj = { ...this.queryString };
     const excludedFields = ['page', 'sort', 'limit', 'fields', 'search', 'populate'];
-    
+
     excludedFields.forEach(field => delete queryObj[field]);
 
     let queryStr = JSON.stringify(queryObj);
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt|in|ne)\b/g, match => `$${match}`);
-    
+
     const parsedQuery = JSON.parse(queryStr);
 
-    if (this.queryString.search) {
-      parsedQuery.$or = [
-        { title: { $regex: this.queryString.search, $options: 'i' } },
-        { description: { $regex: this.queryString.search, $options: 'i' } }
-      ];
+    if (this.queryString.search || additionalOrConditions.length > 0) {
+      parsedQuery.$or = [];
+
+      if (this.queryString.search) {
+        parsedQuery.$or.push(
+          { title: { $regex: this.queryString.search, $options: 'i' } },
+          { description: { $regex: this.queryString.search, $options: 'i' } },
+          { 'metaData.tags': { $regex: this.queryString.search, $options: 'i' } }
+        );
+      }
+
+      if (additionalOrConditions.length > 0) {
+        parsedQuery.$or.push(...additionalOrConditions);
+      }
     }
 
     this.query = this.query.find(parsedQuery);
@@ -110,7 +119,7 @@ export class ApiFeatures {
    */
   static getPaginationMeta(total, page, limit) {
     const pages = Math.ceil(total / limit);
-    
+
     return {
       pagination: {
         currentPage: page,

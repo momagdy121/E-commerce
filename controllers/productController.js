@@ -11,9 +11,23 @@ export const getProducts = catchAsync(async (req, res, next) => {
   // Build base query with active products filter
   const baseQuery = Product.find({ isActive: true });
 
+  // Extended Search: Also search active categories
+  const extraConditions = [];
+  if (req.query.search) {
+    const matchingCategories = await Category.find({
+      name: { $regex: req.query.search, $options: 'i' },
+      isActive: true
+    }).select('_id');
+
+    if (matchingCategories.length > 0) {
+      const categoryIds = matchingCategories.map(cat => cat._id);
+      extraConditions.push({ categoryId: { $in: categoryIds } });
+    }
+  }
+
   // Apply query features
   const features = new ApiFeatures(baseQuery, req.query)
-    .filter()
+    .filter(extraConditions)
     .sort()
     .paginate()
     .limitFields()
@@ -23,8 +37,10 @@ export const getProducts = catchAsync(async (req, res, next) => {
   const products = await features.query;
 
   // Get total count for pagination
+  // Note: countDocument needs to use the same logic, but we handle it via filter()
   const countQuery = Product.find({ isActive: true });
-  const countFeatures = new ApiFeatures(countQuery, req.query).filter();
+  // We need to re-apply filter to count query to get accurate total
+  const countFeatures = new ApiFeatures(countQuery, req.query).filter(extraConditions);
   const total = await Product.countDocuments(countFeatures.query.getQuery());
 
   // Get pagination metadata
